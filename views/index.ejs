@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFS Lobbies Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .lobby-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            height: 100%;
+        }
+        .lobby-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .lobby-title {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .lobby-keywords {
+            background: #e8f4f8;
+            color: #2980b9;
+            font-size: 0.8em;
+        }
+        .header-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bg text-white py-4 mb-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>IFS Lobbies Dashboard</h1>
+                    <p class="mb-0 opacity-75">Browse and access your IFS Cloud lobbies</p>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-light" onclick="refreshToken()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh Token
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <% if (error) { %>
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i><%= error %>
+            </div>
+        <% } %>
+
+        <% if (lobbies.length === 0 && !error) { %>
+            <div class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-3x text-muted mb-3"></i>
+                <h3 class="text-muted">Loading lobbies...</h3>
+            </div>
+        <% } else { %>
+            <div class="row">
+                <% lobbies.forEach(lobby => { %>
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card lobby-card h-100" onclick="openLobby('<%= lobby.pageId %>')">
+                            <div class="card-body">
+                                <h5 class="card-title lobby-title">
+                                    <i class="fas fa-desktop me-2 text-primary"></i>
+                                    <%= lobby.pageTitle %>
+                                </h5>
+                                
+                                <% if (lobby.descriptiveText) { %>
+                                    <p class="card-text text-muted small">
+                                        <%= lobby.descriptiveText %>
+                                    </p>
+                                <% } %>
+                                
+                                <% if (lobby.keywords) { %>
+                                    <div class="mb-2">
+                                        <% lobby.keywords.split(',').forEach(keyword => { %>
+                                            <span class="badge lobby-keywords me-1">
+                                                <%= keyword.trim() %>
+                                            </span>
+                                        <% }); %>
+                                    </div>
+                                <% } %>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <%= new Date(lobby.lastModified.replace(/-/g, '/')).toLocaleDateString() %>
+                                    </small>
+                                    <span class="badge bg-secondary">
+                                        <%= lobby.clientTypesPage %>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } %>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openLobby(pageId) {
+            window.location.href = `/lobby/${pageId}`;
+        }
+
+        async function refreshToken() {
+            try {
+                const response = await fetch('/api/refresh-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    // Show more detailed error message
+                    alert(`Failed to refresh token: ${data.error}\nStatus: ${data.status}\nDetails: ${JSON.stringify(data.details)}`);
+                }
+            } catch (error) {
+                alert('Error refreshing token: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

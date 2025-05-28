@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= lobbyData.page.PageTitle %> - IFS Lobbies</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .header-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .kpi-card { border-radius: 8px; padding: 20px; margin-bottom: 20px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        .kpi-title { font-size: 0.9rem; font-weight: 600; color: #4B4A4D; margin-bottom: 10px; }
+        .kpi-value { font-size: 2.5rem; font-weight: 700; margin-bottom: 5px; }
+        .kpi-target { font-size: 0.8rem; color: #666; }
+        .kpi-green { color: #369B30; }
+        .kpi-yellow { color: #F7AC00; }
+        .kpi-red { color: #E53527; }
+        .separator { background: #f5f5f5; padding: 10px 15px; margin: 20px 0; border-radius: 4px; font-weight: 600; color: #4B4A4D; }
+        .business-area { background: #46287C; color: white; padding: 20px; margin-bottom: 15px; border-radius: 8px; text-align: center; cursor: pointer; transition: transform 0.2s; }
+        .business-area:hover { transform: translateY(-5px);}
+        .image-top { width: 100%; border-radius: 12px; margin-bottom: 24px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="header-bg text-white py-4 mb-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-2">
+                            <li class="breadcrumb-item">
+                                <a href="/" class="text-white text-decoration-none">
+                                    <i class="fas fa-home me-1"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active text-white" aria-current="page">
+                                <%= lobbyData.page.PageTitle %>
+                            </li>
+                        </ol>
+                    </nav>
+                    <h1 class="mb-0"><%= lobbyData.page.PageTitle %></h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <% if (error) { %>
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i><%= error %>
+                <a href="/" class="btn btn-primary ms-3">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        <% } else { %>
+            <% 
+                // Helper: Extract all images
+                function getAllImages(lobbyData) {
+                    const groups = (lobbyData.page.Layout.Groups.Group || []);
+                    let images = [];
+                    groups.forEach(g => {
+                        if (g.Elements && g.Elements.Image) {
+                            images = images.concat(g.Elements.Image);
+                        }
+                    });
+                    return images;
+                }
+                // Helper: Build full image URL
+                function getImageUrl(imgPath) {
+                    if (!imgPath) return '';
+                    if (imgPath.startsWith('http')) return imgPath;
+                    return 'https://ifsgcsc2-d02.demo.ifs.cloud' + imgPath;
+                }
+                const images = getAllImages(lobbyData);
+            %>
+            <% if(images.length) { %>
+                <div class="row mb-3">
+                    <% images.forEach(img => { %>
+                        <div class="col-md-6 mb-2">
+                            <img class="image-top" src="<%= getImageUrl(img.Image) %>" alt="<%= img.Name %>">
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <% 
+                // Helper: Extract all KPI counters
+                function getKpis(lobbyData) {
+                    const groups = (lobbyData.page.Layout.Groups.Group || []);
+                    let kpis = [];
+                    groups.forEach(g => {
+                        if (g.Elements && g.Elements.Counter) {
+                            kpis = kpis.concat(g.Elements.Counter);
+                        }
+                    });
+                    return kpis;
+                }
+                // KPI color logic
+                function getKpiColor(val, target) {
+                    if(val === null || typeof val === "undefined" || target === null || typeof target === "undefined") return '';
+                    if(val >= target) return 'kpi-green';
+                    if(val >= target * 0.9) return 'kpi-yellow';
+                    return 'kpi-red';
+                }
+                const kpiData = getKpis(lobbyData);
+            %>
+            <% if (kpiData.length) { %>
+                <div class="separator">
+                    <i class="fas fa-chart-line me-2"></i>KEY PERFORMANCE INDICATORS
+                </div>
+                <div class="row">
+                    <% kpiData.forEach(kpi => {
+                        const kpiId = kpi.ProjectionDataSource?.Filter?.split("'")[1];
+                        const kpiApiVal = kpiApiData && kpiId && kpiApiData[kpiId] ? kpiApiData[kpiId] : {};
+                        const value = typeof kpiApiVal.Measure !== "undefined" ? kpiApiVal.Measure : null;
+                        const target = kpi.Footer && kpi.Footer.match(/TARGET: (\d+)%?/) ? Number(kpi.Footer.match(/TARGET: (\d+)%?/)[1]) : null;
+                        const suffix = kpi.Suffix || '';
+                    %>
+                        <div class="col-md-4 col-lg-2">
+                            <div class="kpi-card">
+                                <div class="kpi-title">
+                                    <%= kpi.Title || kpi.Name %>
+                                </div>
+                                <div class="kpi-value <%= getKpiColor(value, target) %>">
+                                    <%= value !== null ? value + suffix : '-' %>
+                                </div>
+                                <div class="kpi-target">
+                                    <%= kpi.Footer || '' %>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+
+            <% 
+                // Helper: extract business areas (Text elements after "BUSINESS AREAS" separator)
+                function getBusinessAreas(lobbyData) {
+                    const groups = (lobbyData.page.Layout.Groups.Group || []);
+                    let foundSeparator = false;
+                    let areas = [];
+                    groups.forEach(g => {
+                        if (g.IsSeparator && g.SeparatorTitle === "BUSINESS AREAS") foundSeparator = true;
+                        else if (foundSeparator && g.Elements && g.Elements.Text) {
+                            areas = areas.concat(g.Elements.Text);
+                        }
+                    });
+                    return areas;
+                }
+                const businessAreas = getBusinessAreas(lobbyData);
+            %>
+            <% if(businessAreas.length) { %>
+                <div class="separator">
+                    <i class="fas fa-building me-2"></i>BUSINESS AREAS
+                </div>
+                <div class="row">
+                    <% businessAreas.forEach(area => { %>
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <a class="text-decoration-none" href="<%= area.WebUrl ? (area.WebUrl.startsWith('http') ? area.WebUrl : '/' + area.WebUrl) : '#' %>">
+                                <div class="business-area">
+                                    <h5 class="mb-0"><%= area.BodyText %></h5>
+                                </div>
+                            </a>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+        <% } %>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
