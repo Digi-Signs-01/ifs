@@ -58,6 +58,7 @@ async function getLobbies() {
     const response = await axios.get(url, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
     });
+    console.log('Fetched lobbies:', response.data);
     return response.data;
 }
 

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "framework": { "name": "express", "version": "4.x" },
+  "routes": [
+    { "path": "/*", "target": { "kind": "Compute", "src": "default" } }
+  ],
+  "computeResources": [
+    { "name": "default", "runtime": "nodejs18.x", "entrypoint": "app.js" }
+  ]
+}
